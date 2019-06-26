@@ -1,15 +1,14 @@
 ARMGNU = arm-none-eabi
 MCPU = -mcpu=arm926ej-s 
 
-hello : startup.s test.c test.ld 
+STATIONS = iss iss2
+
+all:
 	$(ARMGNU)-as $(MCPU) -g startup.s -o startup.o
-	$(ARMGNU)-gcc -c $(MCPU) -g test.c -o test.o
-	$(ARMGNU)-ld -T test.ld test.o startup.o -o test.elf 
-	$(ARMGNU)-objcopy -O binary test.elf test.bin
-run:
-	qemu-system-arm -M versatilepb -m 128M -nographic -kernel test.bin -semihosting > test.log
-	
-clean:
+	$(foreach station,$(STATIONS),python gen_test.py $(station);)
+	$(foreach station,$(STATIONS),$(ARMGNU)-gcc -c $(MCPU) -g test_$(station).c -o test_$(station).o;)
+	$(foreach station,$(STATIONS),$(ARMGNU)-ld -T test.ld test_$(station).o startup.o -o test_$(station).elf;)
+	$(foreach station,$(STATIONS),$(ARMGNU)-objcopy -O binary test_$(station).elf test_$(station).bin;)
+	$(foreach station,$(STATIONS),rm test_$(station).c test_$(station).elf;)
 	rm *.o
-	rm *.elf
-	rm *.bin
+
